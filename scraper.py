@@ -3,7 +3,7 @@ import os
 import requests
 
 API_KEY = os.environ.get("API_KEY", "")
-API_URL = f"http://vip.lkag3.com/{API_KEY}/p/3.json"
+API_URL = f"http://vip.lkag3.com/{API_KEY}/p/10.json"
 CSV_FILE = "lottery.csv"
 FIELDNAMES = ["market", "issue", "opendate", "d1", "d2", "d3", "d4", "d5"]
 
@@ -64,7 +64,7 @@ def main():
         print("错误：没有读取到 API_KEY，请检查 Secret 配置")
         return
 
-    print(f"开始从 {API_URL} 拉取数据...")
+    print(f"开始从 {API_URL} 拉取最近 10 期...")
     try:
         resp = requests.get(API_URL, timeout=30)
         resp.raise_for_status()
@@ -74,25 +74,27 @@ def main():
         return
 
     new_rows = parse_response(json_data)
-    print(f"本次从API解析出 {len(new_rows)} 条新数据")
+    print(f"本次从API解析出 {len(new_rows)} 条数据")
 
     if not new_rows:
         print("API没有返回有效数据，任务结束。")
         return
 
     existing = load_existing()
-    added = 0
+    added_list = []
     for row in new_rows:
         key = f"{row['market']}_{row['issue']}"
         if key not in existing:
             existing[key] = row
-            added += 1
+            added_list.append(f"{row['market']}  {row['issue']}")
 
-    if added > 0:
-        print(f"发现 {added} 条新记录，准备写入文件。")
+    if added_list:
+        print(f"补入 {len(added_list)} 条（最近10期内的缺口）：")
+        for x in added_list:
+            print(f"  {x}")
         save_csv(existing)
     else:
-        print("所有数据都已存在，无需更新。")
+        print("最近10期数据完整，无需更新。")
 
 if __name__ == "__main__":
     main()
